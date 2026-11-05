@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>សុំច្បាប់អវត្តមានប្រជុំ</title>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600&display=swap');
+    body {
+      margin: 0; font-family: 'Kantumruy Pro', sans-serif;
+      background: linear-gradient(-45deg, #185a9d, #43cea2, #23a6d5, #23d5ab);
+      background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+      min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;
+    }
+    @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .form-container { background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-width: 500px; width: 100%; text-align: center; }
+    h2 { color: #185a9d; margin-bottom: 5px; font-size: 22px; line-height: 1.5; }
+    h3 { color: #d35400; margin-top: 0; margin-bottom: 25px; font-size: 18px; }
+    .form-group { text-align: left; margin-bottom: 15px; position: relative; }
+    .form-group label { display: block; margin-bottom: 5px; color: #333; font-weight: bold; font-size: 14px; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; font-size: 14px; background: #fff; }
+    input:focus, select:focus { outline: none; border-color: #185a9d; box-shadow: 0 0 5px rgba(24, 90, 157, 0.5); }
+    
+    .dropdown-list {
+      position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto;
+      background: #fff; border: 1px solid #ccc; border-radius: 0 0 8px 8px; z-index: 1000; display: none;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .dropdown-item { padding: 10px 12px; cursor: pointer; text-align: left; font-size: 14px; border-bottom: 1px solid #f1f1f1; }
+    .dropdown-item:hover { background-color: #ffebee; color: #d35400; font-weight: bold; }
+
+    /* ផ្ទាំង (Tabs) សម្រាប់រើសប្រភេទប្រជុំ */
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab { flex: 1; padding: 12px; text-align: center; background: #e0e0e0; color: #333; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; border: 2px solid transparent; }
+    .tab.active { background: #d35400; color: white; border-color: #b54600; }
+    .tab:hover:not(.active) { background: #d0d0d0; }
+
+    button[type="button"] { width: 100%; padding: 14px; background-color: #d35400; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; font-family: 'Kantumruy Pro', sans-serif; }
+    button:hover { background-color: #b54600; }
+    button:disabled { background-color: #999; cursor: not-allowed; }
+    #status { margin-top: 15px; font-weight: bold; font-size: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="form-container">
+    <h2>ផ្នែកសល្យសាស្ត្រ មន្ទីរពេទ្យបង្អែកខេត្តបាត់ដំបង</h2>
+    <h3>ចុះឈ្មោះសុំអវត្តមានប្រជុំប្រចាំខែ <span id="current-month-year"></span></h3>
+
+    <div id="main-form-content">
+      
+      <!-- ជម្រើសប្រភេទប្រជុំដែលសុំអវត្តមាន (Meeting Type Tabs) -->
+      <div class="tabs">
+        <div class="tab active" id="tab-general" onclick="switchTab('general')">👥 អវត្តមានប្រជុំរួម</div>
+        <div class="tab" id="tab-doctor" onclick="switchTab('doctor')">🩺 អវត្តមានប្រជុំគ្រូពេទ្យ</div>
+      </div>
+
+      <form id="absenceForm">
+        <!-- ទុកកំណត់ឈ្មោះ Tab ក្នុង Google Sheets ពេលផ្ញើ -->
+        <input type="hidden" id="meetingType" value="វត្តមានប្រជុំរួម">
+
+        <div class="form-group">
+          <label>ឈ្មោះជាភាសាខ្មែរ (Name):</label>
+          <input type="text" id="staffNameInput" placeholder="🔍 វាយបញ្ចូល ឬស្វែងរកឈ្មោះរបស់អ្នក..." autocomplete="off" oninput="filterNames()" onclick="showDropdown()" required>
+          <div id="dropdownList" class="dropdown-list"></div>
+        </div>
+
+        <div class="form-group">
+          <label>តួនាទី (Role):</label>
+          <select name="role" required id="roleInput">
+            <option value="" disabled selected>ជ្រើសរើសតួនាទី...</option>
+            <option value="ប្រធានផ្នែក">ប្រធានផ្នែក</option>
+            <option value="អនុប្រធានផ្នែក">អនុប្រធានផ្នែក</option>
+            <option value="គ្រូពេទ្យព្យាបាល">គ្រូពេទ្យព្យាបាល</option>
+            <option value="នាយអគារ">នាយអគារ</option>
+            <option value="នាយអគាររង">នាយអគាររង</option>
+            <option value="មន្ត្រី">មន្ត្រី</option>
+            <option value="មន្ត្រីកិច្ចសន្យា">មន្ត្រីកិច្ចសន្យា</option>
+            <option value="បុគ្គលិកជំនួយការ">បុគ្គលិកជំនួយការ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>អគារ (Building):</label>
+          <select name="building" required id="buildingInput">
+            <option value="" disabled selected>ជ្រើសរើសអគារ...</option>
+            <option value="សល្យសាស្ត្រ">សល្យសាស្ត្រ</option>
+            <option value="សល្យាគារ">សល្យាគារ</option>
+            <option value="ប្រពោធនកម្មនិងសណ្ដំ">ប្រពោធនកម្មនិងសណ្ដំ</option>
+            <option value="វះកាត់តូច">វះកាត់តូច</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>មូលហេតុអវត្តមាន (Absence Reason):</label>
+          <!-- បន្ថែម onchange ដើម្បីចាប់យកពេលរើសយក មូលហេតុផ្សេង -->
+          <select name="absence" id="absenceInput" required onchange="toggleOtherReason()">
+            <option value="" disabled selected>-- សូមជ្រើសរើសមូលហេតុអវត្តមាន --</option>
+            <option value="បេសកកម្ម">បេសកកម្ម</option>
+            <option value="សុំច្បាប់">សុំច្បាប់</option>
+            <option value="មានបញ្ហាសុខភាព">មានបញ្ហាសុខភាព</option>
+            <option value="រវល់ការងារបន្ទាន់">រវល់ការងារបន្ទាន់</option>
+            <option value="មូលហេតុផ្សេង">មូលហេតុផ្សេង</option>
+          </select>
+        </div>
+
+        <!-- ប្រអប់បញ្ចូលមូលហេតុផ្សេង (លាក់ជាបឋម) -->
+        <div class="form-group" id="otherReasonGroup" style="display: none;">
+          <label>សូមបញ្ជាក់មូលហេតុ (Please specify):</label>
+          <input type="text" id="otherReasonInput" placeholder="វាយបញ្ចូលមូលហេតុនៅទីនេះ..." autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label>សូមបញ្ចូលរូបភាព លិខិតបេសកកម្ម ឬពាក្យសុំច្បាប់ (បើមាន):</label>
+          <input type="file" id="attachmentFile" accept="image/*,application/pdf" style="padding: 8px; background: #fff;">
+        </div>
+
+        <button type="button" id="submitBtn" onclick="processAbsence()">បញ្ជូនសំណើសុំអវត្តមាន</button>
+        <div id="status"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxL4i_uIsdavDV_cgDkmqhf6pZ-5TFyTR8tWHMvbmn_TrUo1-TIvg2F81U79kJn3Ww/exec";
+
+    const staffList = [
+      "ហួត សុជាតិ", "ហួត សុគុណ", "លីម សារ៉ាន់ឌី", "តុល កុសល", "ស៊ា សុគន្ធ", "ស៊ុម រដ្ឋា", 
+      "សួន សុវណ្ណារ៉ា", "ខ្លូត វណ្ណវិច្ឆ័យ", "ទន់ វឌ្ឍនៈ", "ញ៉ែម សមបញ្ញា", "ភិន សុភី", "វ៉ុន វ៉ាន់នី", 
+      "ហាស់ ស៊ីផាន់", "អ៊ាន ម៉ារ៉ាឌី", "ម៉ៅ តារា", "សារ៉ង សារៈសិន្ធុ", "យ៉ម ផល្លា", "ស៊ិច ពិសី", 
+      "អុន សម្ភស្សសោភា", "ពេជ្រ ភីរម្យ", "ផាវ ផល", "វឿន គង់", "ហាន ផារី", "ឃឹម ប៊ុណ្ណា", 
+      "ហ៊ាន ពីណា", "អេង សូនី", "លេន បូនី", "សែត ហត្ថា", "និន ចំរើន", "កែ កិណិរី", 
+      "ពៅ សុខណា", "ប៉ែន វ៉ាន់ដា", "កៅ សាវុទ្ធី", "ធី សុធារៈ", "ឯម បូរ៉ា", "ខុង សាវ៉ាន់", 
+      "ស៊ុម ចំរើន", "ឃិន ទុំ", "មួង រដ្ឋ", "គិន គីណារិន", "រី សាលឿន", "ផាវ ភី", 
+      "ម៉ម ផុសណាគ្រី", "តឹក ប៊ុនឡុង", "ស៊ីថាន", "សូ វិបុល", "ឈួម ស៊ិន", "សល់ ចាន់ចាវ", 
+      "អាង ចន្ទបរមី", "ហៃ សាវ៉ាន់", "លាប ចិត្រា", "តេង ច័ន្ទតារា", "គុជ រចនា", "អ៊ាន សុភក្តិ", 
+      "ខៅ ស្រីនុច", "សុគន្ធ រ៉ូហ្សា", "ផន ឡៃហ៊ាង", "ស៊ី ស៊ីវអ៊ី", "រ៉េត គឹមឡាង", "អ៊ឹម អ៊ីវន", 
+      "ខុន ពុទ្ធិ", "ធំ តុលាការ", "ជួន ពិសិដ្ឋ", "យស រតនា", "ឌី ម៉ូនីន", "រ៉យ ឡាយ", 
+      "អ៊ុក សារ៉ាវី", "សាន ធីណាន", "គុជ សោភា", "វ៉ិត ឆវី", "ប៉េង ហង្សដានេត"
+    ];
+
+    const khmerMonths = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
+    const today = new Date();
+    const currentMonth = khmerMonths[today.getMonth()];
+    const currentYear = today.getFullYear();
+
+    const khmerDigits = {'0':'០','1':'១','2':'២','3':'៣','4':'៤','5':'៥','6':'៦','7':'៧','8':'៨','9':'៩'};
+    document.getElementById("current-month-year").innerText = `${currentMonth} ឆ្នាំ ${currentYear.toString().split('').map(d => khmerDigits[d] || d).join('')}`;
+
+    function showDropdown() {
+      renderDropdown(staffList);
+      document.getElementById('dropdownList').style.display = 'block';
+    }
+
+    function filterNames() {
+      const keyword = document.getElementById('staffNameInput').value.toLowerCase();
+      const filtered = staffList.filter(name => name.toLowerCase().includes(keyword));
+      renderDropdown(filtered);
+      document.getElementById('dropdownList').style.display = 'block';
+    }
+
+    function renderDropdown(items) {
+      const listDiv = document.getElementById('dropdownList');
+      listDiv.innerHTML = '';
+      if (items.length === 0) {
+        listDiv.innerHTML = '<div class="dropdown-item" style="color: #999;">រកមិនឃើញឈ្មោះ</div>';
+        return;
+      }
+      items.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.innerText = name;
+        item.onclick = function() {
+          document.getElementById('staffNameInput').value = name;
+          listDiv.style.display = 'none';
+        };
+        listDiv.appendChild(item);
+      });
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.form-group')) {
+        document.getElementById('dropdownList').style.display = 'none';
+      }
+    });
+
+    // ប្ដូរផ្ទាំងដើម្បីកំណត់គោលដៅបញ្ចូលទិន្នន័យទៅ Tab ណា
+    function switchTab(tabType) {
+      document.getElementById('tab-general').classList.remove('active');
+      document.getElementById('tab-doctor').classList.remove('active');
+
+      if (tabType === 'general') {
+        document.getElementById('tab-general').classList.add('active');
+        document.getElementById('meetingType').value = "វត្តមានប្រជុំរួម";
+      } else {
+        document.getElementById('tab-doctor').classList.add('active');
+        document.getElementById('meetingType').value = "វត្តមានប្រជុំគ្រូពេទ្យ";
+      }
+    }
+
+    // បង្ហាញ ឬ លាក់ប្រអប់បញ្ជាក់មូលហេតុផ្សេង
+    function toggleOtherReason() {
+      const absenceInput = document.getElementById('absenceInput').value;
+      const otherReasonGroup = document.getElementById('otherReasonGroup');
+      if (absenceInput === 'មូលហេតុផ្សេង') {
+        otherReasonGroup.style.display = 'block';
+      } else {
+        otherReasonGroup.style.display = 'none';
+      }
+    }
+
+    function processAbsence() {
+      const statusDiv = document.getElementById('status');
+      const staffName = document.getElementById('staffNameInput').value.trim();
+      const role = document.getElementById('roleInput').value;
+      const building = document.getElementById('buildingInput').value;
+      let absenceInput = document.getElementById('absenceInput').value;
+      const targetSheet = document.getElementById('meetingType').value;
+
+      // បើជ្រើសរើស "មូលហេតុផ្សេង" ត្រូវចាប់យកអត្ថបទពីប្រអប់បញ្ចូល
+      if (absenceInput === 'មូលហេតុផ្សេង') {
+        const otherReason = document.getElementById('otherReasonInput').value.trim();
+        if (!otherReason) {
+          statusDiv.innerText = "សូមបញ្ជាក់មូលហេតុផ្សេងឱ្យបានច្បាស់លាស់!";
+          statusDiv.style.color = "red"; return;
+        }
+        absenceInput = otherReason;
+      }
+
+      if (!staffName || !role || !building || !absenceInput) {
+         statusDiv.innerText = "សូមបំពេញព័ត៌មាន និងមូលហេតុអវត្តមានឱ្យបានគ្រប់គ្រាន់សិន!";
+         statusDiv.style.color = "red"; return;
+      }
+
+      if (!staffList.includes(staffName)) {
+         statusDiv.innerText = "សូមជ្រើសរើសឈ្មោះដែលមានក្នុងបញ្ជីឱ្យបានត្រឹមត្រូវ!";
+         statusDiv.style.color = "red"; return;
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      statusDiv.innerText = "កំពុងបញ្ជូនទិន្នន័យអវត្តមាន...";
+      statusDiv.style.color = "#d35400";
+
+      const fileInput = document.getElementById('attachmentFile');
+      const file = fileInput.files[0];
+      
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          sendDataToBackend({
+            staffName: staffName,
+            role: role,
+            building: building,
+            sheetName: targetSheet,
+            attendanceStatus: absenceInput, // ទិន្នន័យនេះទៅ Logs រីឯក្នុង Matrix វានឹងលោត ❌ ដដែល
+            absence: absenceInput,
+            fileName: file.name,
+            fileData: e.target.result.split(',')[1],
+            mimeType: file.type
+          }, submitBtn, statusDiv);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        sendDataToBackend({
+          staffName: staffName,
+          role: role,
+          building: building,
+          sheetName: targetSheet,
+          attendanceStatus: absenceInput,
+          absence: absenceInput,
+          fileName: "",
+          fileData: "",
+          mimeType: ""
+        }, submitBtn, statusDiv);
+      }
+    }
+
+    function sendDataToBackend(data, submitBtn, statusDiv) {
+      fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          statusDiv.innerText = "ជោគជ័យ! សំណើសុំច្បាប់/អវត្តមាន ត្រូវបានបញ្ជូនរួចរាល់។";
+          statusDiv.style.color = "green";
+          
+          setTimeout(() => {
+            document.getElementById('absenceForm').reset();
+            document.getElementById('staffNameInput').value = "";
+            document.getElementById('otherReasonGroup').style.display = 'none'; // លាក់វិញ
+            submitBtn.disabled = false;
+            statusDiv.innerText = "";
+            window.location.reload(); 
+          }, 2000);
+        } else {
+          statusDiv.innerText = "បរាជ័យ៖ " + (result.error || "មិនស្គាល់បញ្ហា");
+          statusDiv.style.color = "red";
+          submitBtn.disabled = false;
+        }
+      })
+      .catch((error) => {
+        statusDiv.innerText = "បរាជ័យក្នុងការតភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ។ សូមសាកល្បងម្ដងទៀត!";
+        statusDiv.style.color = "red";
+        submitBtn.disabled = false; 
+      });
+    }
+  </script>
+</body>
+</html>
