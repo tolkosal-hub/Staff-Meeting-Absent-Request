@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>សុំច្បាប់អវត្តមានប្រជុំ</title>
   
+  <!-- បន្ថែម Script នេះសម្រាប់ Pop-up (SweetAlert2) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600&display=swap');
     body {
@@ -324,6 +327,7 @@
       }
     }
 
+    // មុខងារបញ្ជូនទិន្នន័យ និងបង្ហាញ SweetAlert Pop-up
     function sendDataToBackend(data, submitBtn, statusDiv) {
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -333,17 +337,28 @@
       .then(response => response.json())
       .then(result => {
         if (result.success) {
-          statusDiv.innerText = "ជោគជ័យ! សំណើសុំច្បាប់/អវត្តមាន ត្រូវបានបញ្ជូនរួចរាល់។";
-          statusDiv.style.color = "green";
+          // លុបអក្សរកំពុងបញ្ជូនចេញ
+          statusDiv.innerText = "";
           
-          setTimeout(() => {
-            document.getElementById('absenceForm').reset();
-            document.getElementById('staffNameInput').value = "";
-            document.getElementById('otherReasonGroup').style.display = 'none'; // លាក់វិញ
-            submitBtn.disabled = false;
-            statusDiv.innerText = "";
-            window.location.reload(); 
-          }, 2000);
+          // បង្ហាញ Pop-up ជោគជ័យ
+          Swal.fire({
+            title: 'ជោគជ័យ!',
+            text: 'ពាក្យស្នើសុំច្បាប់បានបញ្ជូនដោយជោគជ័យ',
+            icon: 'success',
+            confirmButtonText: 'យល់ព្រម',
+            confirmButtonColor: '#d35400', // ដាក់ពណ៌លឿងទុំឲ្យត្រូវជាមួយ Theme របស់ទម្រង់សុំច្បាប់
+            allowOutsideClick: false // តម្រូវឲ្យចុចប៊ូតុងទើបបាត់
+          }).then((res) => {
+            if (res.isConfirmed) {
+              // Reset ពេលអ្នកប្រើប្រាស់ចុចយល់ព្រម
+              document.getElementById('absenceForm').reset();
+              document.getElementById('staffNameInput').value = "";
+              document.getElementById('otherReasonGroup').style.display = 'none'; // លាក់ប្រអប់មូលហេតុផ្សេងវិញ
+              submitBtn.disabled = false;
+              window.location.reload(); 
+            }
+          });
+          
         } else {
           statusDiv.innerText = "បរាជ័យ៖ " + (result.error || "មិនស្គាល់បញ្ហា");
           statusDiv.style.color = "red";
